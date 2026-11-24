@@ -289,6 +289,12 @@ void EnergomeraBleComponent::loop() {
     case FsmState::ERROR:
       // do nothing
       break;
+
+    case FsmState::NOT_INITIALIZED:
+    case FsmState::DISCONNECTED:
+    default:
+      // эти состояния в loop() ничего не делают
+      break;
   }
 }
 
