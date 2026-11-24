@@ -650,7 +650,9 @@ bool EnergomeraBleComponent::ble_send_next_fragment_() {
     return false;
   }
 
-  ESP_LOGV(TAG, "TX: %s", format_hex_pretty(packet, packet_len).c_str());
+  // Замените строку 653 на:
+  char hex_buf[3 * packet_len + 1];
+  ESP_LOGV(TAG, "TX: %s", format_hex_pretty_to(hex_buf, sizeof(hex_buf), packet, packet_len));
 
   if (more_after_this) {
     this->tx_ptr_ += payload_len;
