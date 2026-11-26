@@ -286,14 +286,10 @@ void EnergomeraBleComponent::loop() {
       }
     } break;
 
-    case FsmState::ERROR:
-      // do nothing
-      break;
-
     case FsmState::NOT_INITIALIZED:
     case FsmState::DISCONNECTED:
-    default:
-      // эти состояния в loop() ничего не делают
+    case FsmState::ERROR:
+      // do nothing
       break;
   }
 }
@@ -656,9 +652,10 @@ bool EnergomeraBleComponent::ble_send_next_fragment_() {
     return false;
   }
 
-  // Замените строку 653 на:
-  char hex_buf[3 * packet_len + 1];
-  ESP_LOGV(TAG, "TX: %s", format_hex_pretty_to(hex_buf, sizeof(hex_buf), packet, packet_len));
+#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERBOSE
+  char tx_hex[format_hex_pretty_size(TX_BUFFER_SIZE + 1)];
+  ESP_LOGV(TAG, "TX: %s", format_hex_pretty_to(tx_hex, sizeof(tx_hex), packet, packet_len, '.'));
+#endif
 
   if (more_after_this) {
     this->tx_ptr_ += payload_len;
@@ -672,8 +669,12 @@ bool EnergomeraBleComponent::ble_send_next_fragment_() {
 }
 
 void EnergomeraBleComponent::ble_initiate_fragment_reads_(uint8_t fragments_to_read) {
-  uint8_t fragments = fragments_to_read + 1;
+  uint8_t fragments = fragments_to_read;
 
+  if (fragments == 0) {
+    ESP_LOGW(TAG, "Meter reported 0 fragments to read, reading 1");
+    fragments = 1;
+  }
   if (fragments > RX_HANDLES_NUM)
     fragments = RX_HANDLES_NUM;
 
@@ -694,7 +695,10 @@ void EnergomeraBleComponent::ble_request_next_fragment_() {
       this->rx_buffer_[i] = this->rx_buffer_[i] & 0x7F;
     }
     ESP_LOGV(TAG, "RX: %s", format_frame_pretty(this->rx_buffer_, this->rx_len_).c_str());
-    ESP_LOGVV(TAG, "RX: %s", format_hex_pretty(this->rx_buffer_, this->rx_len_).c_str());
+#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERY_VERBOSE
+    char rx_hex[format_hex_pretty_size(RX_BUFFER_SIZE)];
+    ESP_LOGVV(TAG, "RX: %s", format_hex_pretty_to(rx_hex, sizeof(rx_hex), this->rx_buffer_, this->rx_len_, '.'));
+#endif
     return;
   }
 
